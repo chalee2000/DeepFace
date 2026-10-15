@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#f6f7fb">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>เปรียบเทียบใบหน้า</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Ccircle cx=%2716%27 cy=%2716%27 r=%2714%27 fill=%27%231d4ed8%27/%3E%3Ccircle cx=%2711.5%27 cy=%2713%27 r=%272%27 fill=%27white%27/%3E%3Ccircle cx=%2720.5%27 cy=%2713%27 r=%272%27 fill=%27white%27/%3E%3Cpath d=%27M10 20q6 5 12 0%27 stroke=%27white%27 stroke-width=%272%27 fill=%27none%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1>เปรียบเทียบใบหน้า</h1>
+    <p class="lede">อัปโหลดภาพบุคคล A และ B ระบบจะตรวจจับ จัดตำแหน่ง และแสดงคะแนนความคล้ายเพื่อใช้ประกอบการพิจารณา</p>
+    <p class="privacy">ภาพถูกประมวลผลในหน่วยความจำของเซิร์ฟเวอร์ชั่วคราว ไม่บันทึกลงดิสก์ และหมดอายุอัตโนมัติใน 30 นาที</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="pair" aria-label="อัปโหลดภาพ">
+    <article class="slot" id="slot-A" data-slot="A">
+      <header><span class="tag">A</span><h2>บุคคล A</h2></header>
+      <div class="stage" id="stage-A">
+        <div class="empty">
+          <p>ลากภาพมาวางที่นี่ หรือเลือกจากเครื่อง</p>
+          <div class="btnrow">
+            <label class="btn primary">เลือกรูป<input type="file" accept="image/*" data-pick="A" hidden></label>
+            <label class="btn">ถ่ายรูป<input type="file" accept="image/*" capture="user" data-pick="A" hidden></label>
+          </div>
+        </div>
+      </div>
+      <p class="status" id="status-A" role="status" aria-live="polite"></p>
+      <div class="chips" id="chips-A"></div>
+      <button class="link" id="reset-A" hidden>เปลี่ยนภาพ</button>
+    </article>
+
+    <article class="slot" id="slot-B" data-slot="B">
+      <header><span class="tag">B</span><h2>บุคคล B</h2></header>
+      <div class="stage" id="stage-B">
+        <div class="empty">
+          <p>ลากภาพมาวางที่นี่ หรือเลือกจากเครื่อง</p>
+          <div class="btnrow">
+            <label class="btn primary">เลือกรูป<input type="file" accept="image/*" data-pick="B" hidden></label>
+            <label class="btn">ถ่ายรูป<input type="file" accept="image/*" capture="user" data-pick="B" hidden></label>
+          </div>
+        </div>
+      </div>
+      <p class="status" id="status-B" role="status" aria-live="polite"></p>
+      <div class="chips" id="chips-B"></div>
+      <button class="link" id="reset-B" hidden>เปลี่ยนภาพ</button>
+    </article>
+  </section>
+
+  <div class="actions">
+    <button class="btn primary big" id="go" disabled>เปรียบเทียบ</button>
+    <button class="btn" id="swap" disabled>สลับ A ↔ B</button>
+    <button class="btn ghost" id="clear" disabled>ล้างทั้งหมด</button>
+  </div>
+  <p class="error" id="error" role="alert" hidden></p>
+
+  <section id="result" hidden aria-label="ผลการเปรียบเทียบ">
+    <div class="card score-card">
+      <div class="score-head">
+        <div>
+          <div class="score" id="score">–</div>
+          <div class="score-sub">คะแนนความคล้าย (0–100)</div>
+        </div>
+        <div class="verdict">
+          <div class="band" id="band">–</div>
+          <p id="band-text"></p>
+          <p class="mono" id="cosine"></p>
+        </div>
+      </div>
+      <div class="gauge" id="gauge" aria-hidden="true">
+        <div class="zones"><i style="flex:20"></i><i style="flex:10"></i><i style="flex:10"></i><i style="flex:15"></i><i style="flex:45"></i></div>
+        <div class="marker" id="marker"></div>
+        <div class="ticks"><span style="left:0%">0</span><span style="left:20%">20</span><span style="left:30%">30</span><span style="left:40%">40</span><span style="left:55%">55</span><span style="left:100%">100</span></div>
+      </div>
+      <div class="gauge-legend">
+        <span>ต่ำมาก</span><span>ต่ำ</span><span>ก้ำกึ่ง</span><span>สูง</span><span>สูงมาก</span>
+      </div>
+      <div class="reliability" id="reliability"></div>
+    </div>
+
+    <div class="notice" role="note">
+      <strong>โปรดอ่าน:</strong>
+      <span id="disclaimer"></span>
+    </div>
+
+    <div class="card">
+      <div class="card-head">
+        <h3>เปรียบเทียบใบหน้าเคียงข้างกัน</h3>
+        <div class="seg" role="tablist" aria-label="โหมดแสดงผล">
+          <button role="tab" aria-selected="true" data-mode="side">เคียงข้าง</button>
+          <button role="tab" aria-selected="false" data-mode="wipe">เลื่อนเทียบ</button>
+          <button role="tab" aria-selected="false" data-mode="blend">ซ้อนโปร่งแสง</button>
+        </div>
+      </div>
+      <div id="view-side" class="faces">
+        <figure><img id="aligned-A" alt="ใบหน้า A ที่จัดตำแหน่งแล้ว"><figcaption>A</figcaption></figure>
+        <figure><img id="aligned-B" alt="ใบหน้า B ที่จัดตำแหน่งแล้ว"><figcaption>B</figcaption></figure>
+      </div>
+      <div id="view-wipe" hidden>
+        <div class="overlay">
+          <img id="wipe-B" alt="ใบหน้า B">
+          <img id="wipe-A" alt="ใบหน้า A" class="top">
+          <div class="handle" id="wipe-handle"></div>
+          <span class="lab l">A</span><span class="lab r">B</span>
+        </div>
+        <input type="range" id="wipe-range" min="0" max="100" value="50" aria-label="เลื่อนเพื่อเทียบ A และ B">
+        <p class="hint">เลื่อนแถบเพื่อดูแนวใบหน้า A และ B ทับกัน (ซ้าย = A, ขวา = B)</p>
+      </div>
+      <div id="view-blend" hidden>
+        <div class="overlay">
+          <img id="blend-B" alt="ใบหน้า B">
+          <img id="blend-A" alt="ใบหน้า A" class="top" style="opacity:.5">
+        </div>
+        <input type="range" id="blend-range" min="0" max="100" value="50" aria-label="ความโปร่งแสงของภาพ A">
+        <p class="hint">ปรับสัดส่วนภาพ A ซ้อนทับภาพ B เพื่อดูความต่างของโครงหน้า</p>
+      </div>
+
+      <h4>เปรียบเทียบเฉพาะส่วน</h4>
+      <div class="regions" id="regions"></div>
+    </div>
+
+    <details class="card quality">
+      <summary>รายละเอียดคุณภาพภาพ</summary>
+      <table>
+        <thead><tr><th></th><th>A</th><th>B</th></tr></thead>
+        <tbody id="quality-body"></tbody>
+      </table>
+      <p class="hint" id="model-name"></p>
+    </details>
+
+    <form class="card report" id="report-form">
+      <h3>ออกรายงาน PDF</h3>
+      <p class="hint">รายงานประกอบด้วยภาพต้นฉบับ (พร้อมกรอบใบหน้า) ใบหน้าที่จัดตำแหน่งแล้ว คะแนน คุณภาพภาพ ค่า SHA-256 ของไฟล์ วิธีการ และข้อควรระวัง ช่องด้านล่างไม่บังคับกรอก</p>
+      <label>เลขที่เรื่อง / อ้างอิง<input name="case_no" maxlength="200" autocomplete="off"></label>
+      <label>วัตถุประสงค์<input name="purpose" maxlength="500" autocomplete="off"></label>
+      <label>ผู้จัดทำ / ผู้ตรวจ<input name="examiner" maxlength="200" autocomplete="name"></label>
+      <label>หมายเหตุ<textarea name="notes" rows="3" maxlength="3000"></textarea></label>
+      <div class="btnrow">
+        <button class="btn primary big" type="submit" id="report-btn">สร้างรายงาน PDF</button>
+        <a class="btn" id="report-link" hidden target="_blank" rel="noopener">เปิด / บันทึก PDF</a>
+      </div>
+      <p class="status" id="report-status" role="status" aria-live="polite"></p>
+    </form>
+  </section>
+</main>
+
+<footer class="wrap foot">
+  <p>เครื่องมือช่วยตรวจสอบเบื้องต้นเท่านั้น ไม่ใช่การพิสูจน์ตัวบุคคล</p>
+</footer>
+<script src="/app.js"></script>
+</body>
+</html>
