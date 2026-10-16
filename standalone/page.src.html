@@ -1,0 +1,287 @@
+<title>เปรียบเทียบใบหน้า</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap">
+<style>
+/* เลย์เอาต์: คอลัมน์เดียวบนมือถือ สองคอลัมน์ (A | B) บนจอกว้าง; โทนน้ำเงินเดียวไล่ระดับ ไม่ใช้แดง/เขียนบอกผลผ่าน-ไม่ผ่าน */
+:root {
+  --bg: #f6f7fb; --surface: #ffffff; --ink: #101828; --muted: #596275; --line: #e1e5ee;
+  --accent: #1d4ed8; --accent-ink: #ffffff; --accent-soft: #eef2ff;
+  --note-bg: #fffaeb; --note-line: #e8b94a; --note-ink: #6b4a00; --err: #b42318;
+  --z1: #cbd5e1; --z2: #9db4dc; --z3: #6b8cc7; --z4: #3f55b8; --z5: #1e1b6e;
+  --t1: #64748b; --t2: #4b6aa8; --t3: #3f55b8; --t4: #2f3fa8; --t5: #1e1b6e;
+  --shadow: 0 1px 2px rgba(16,24,40,.06), 0 1px 3px rgba(16,24,40,.08);
+  --font: "Sarabun", -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans Thai", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0c111d; --surface: #161b26; --ink: #f2f4f7; --muted: #9aa4b6; --line: #2a3140;
+    --accent: #7c98ff; --accent-ink: #0b1020; --accent-soft: #1a2240;
+    --note-bg: #2b2411; --note-line: #8a6a12; --note-ink: #f6dc9b; --err: #fda29b;
+    --z1: #334155; --z2: #3b4f7a; --z3: #4b6bb5; --z4: #7288f0; --z5: #b8c0ff;
+    --t1: #9aa4b6; --t2: #8fa8e0; --t3: #8ea0f5; --t4: #a5b4fc; --t5: #c7d0ff;
+    --shadow: none; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0c111d; --surface: #161b26; --ink: #f2f4f7; --muted: #9aa4b6; --line: #2a3140;
+  --accent: #7c98ff; --accent-ink: #0b1020; --accent-soft: #1a2240;
+  --note-bg: #2b2411; --note-line: #8a6a12; --note-ink: #f6dc9b; --err: #fda29b;
+  --z1: #334155; --z2: #3b4f7a; --z3: #4b6bb5; --z4: #7288f0; --z5: #b8c0ff;
+  --t1: #9aa4b6; --t2: #8fa8e0; --t3: #8ea0f5; --t4: #a5b4fc; --t5: #c7d0ff;
+  --shadow: none; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font); font-size: 17px; line-height: 1.5;
+  padding-block: 0 40px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.wrap { max-width: 980px; margin: 0 auto; }
+.top { padding: 20px 0 4px; }
+h1 { margin: 0 0 4px; font-size: 28px; line-height: 1.25; text-wrap: balance; }
+h2, h3 { margin: 0; font-size: 18px; line-height: 1.3; }
+h4 { margin: 20px 0 8px; font-size: 15px; color: var(--muted); }
+p { margin: 0; }
+.lede { margin-bottom: 4px; }
+.privacy, .hint { color: var(--muted); font-size: 14px; }
+.hint { margin-top: 8px; }
+.foot { text-align: center; color: var(--muted); font-size: 14px; padding: 24px 0 8px; }
+
+.pair { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; margin-top: 16px; }
+@media (min-width: 720px) { .pair { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+.slot, .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 14px; min-width: 0; }
+.slot > header { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+.tag { display: inline-grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); color: var(--accent-ink); font-weight: 700; }
+.stage { position: relative; border-radius: 10px; overflow: hidden; background: var(--accent-soft); min-height: 200px; display: grid; place-items: center; }
+.stage.drag { outline: 3px dashed var(--accent); outline-offset: -6px; }
+.empty { text-align: center; padding: 28px 16px; color: var(--muted); }
+.empty p { margin-bottom: 14px; }
+.photo { position: relative; width: 100%; line-height: 0; }
+.photo.loading { min-height: 200px; }
+.photo img { width: 100%; height: auto; display: block; }
+.photo svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+.photo svg rect.face { fill: transparent; stroke: #fff; stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.photo svg rect.face.sel { stroke: #22c55e; stroke-width: 3px; }
+.photo svg rect.hit { fill: transparent; cursor: pointer; pointer-events: all; }
+.photo svg circle { fill: #f59e0b; stroke: #fff; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.photo svg text { font-weight: 700; paint-order: stroke; stroke: rgba(0,0,0,.65); stroke-width: 3px; fill: #fff; }
+.spinner { position: absolute; inset: 0; display: grid; place-items: center; }
+.spinner::after { content: ""; width: 34px; height: 34px; border-radius: 50%; border: 4px solid var(--line); border-top-color: var(--accent); animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spinner::after { animation-duration: 3s; } }
+
+.status { margin-top: 8px; font-size: 14px; color: var(--muted); min-height: 1.4em; }
+.status.bad { color: var(--err); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip { font-size: 13px; padding: 2px 10px; border-radius: 999px; background: var(--accent-soft); border: 1px solid var(--line); }
+.chip.warn { background: var(--note-bg); border-color: var(--note-line); color: var(--note-ink); }
+.link { background: none; border: 0; color: var(--accent); font: inherit; padding: 10px 0 0; cursor: pointer; text-decoration: underline; min-height: 44px; }
+
+.btnrow { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; }
+.btn { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 0 18px; border-radius: 10px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; -webkit-tap-highlight-color: transparent; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.btn.ghost { background: transparent; }
+.btn.big { min-height: 50px; padding: 0 28px; font-size: 18px; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+:is(.btn, .link, input, textarea, .seg button):focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 8px; align-items: center; }
+.error { color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); padding: 10px 14px; border-radius: 10px; margin: 8px 0; }
+
+#result { margin-top: 16px; display: grid; gap: 16px; }
+.score-head { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
+.score { font-size: 64px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
+.score-sub { color: var(--muted); font-size: 14px; }
+.band { font-size: 24px; font-weight: 700; }
+.mono { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+.lv-very-low { color: var(--t1); } .lv-low { color: var(--t2); } .lv-mid { color: var(--t3); } .lv-mid-high { color: var(--t4); } .lv-high { color: var(--t5); }
+.gauge { position: relative; margin: 24px 4px 0; }
+.zones { display: flex; height: 14px; border-radius: 7px; overflow: hidden; }
+.zones i:nth-child(1) { flex: 20; background: var(--z1); } .zones i:nth-child(2) { flex: 10; background: var(--z2); } .zones i:nth-child(3) { flex: 10; background: var(--z3); }
+.zones i:nth-child(4) { flex: 15; background: var(--z4); } .zones i:nth-child(5) { flex: 45; background: var(--z5); }
+.marker { position: absolute; top: -10px; width: 0; height: 0; margin-left: -8px; border-left: 8px solid transparent; border-right: 8px solid transparent; border-top: 11px solid var(--ink); transition: left .5s cubic-bezier(.2,.8,.2,1); }
+@media (prefers-reduced-motion: reduce) { .marker { transition: none; } }
+.ticks { position: relative; height: 22px; font-size: 12px; color: var(--muted); }
+.ticks span { position: absolute; transform: translateX(-50%); top: 3px; }
+.ticks span:first-child { transform: none; } .ticks span:last-child { transform: translateX(-100%); }
+.gauge-legend { display: flex; font-size: 11px; color: var(--muted); margin: 0 4px; }
+.gauge-legend span { text-align: center; white-space: nowrap; }
+.gauge-legend span:nth-child(1) { flex: 20; } .gauge-legend span:nth-child(2) { flex: 10; } .gauge-legend span:nth-child(3) { flex: 10; } .gauge-legend span:nth-child(4) { flex: 15; } .gauge-legend span:nth-child(5) { flex: 45; }
+.reliability { margin-top: 14px; padding: 10px 12px; border-radius: 10px; background: var(--accent-soft); font-size: 15px; }
+.reliability.fair, .reliability.poor { background: var(--note-bg); border: 1px solid var(--note-line); color: var(--note-ink); }
+.reliability ul { margin: 6px 0 0; padding-left: 20px; }
+.notice { background: var(--note-bg); border: 1px solid var(--note-line); color: var(--note-ink); border-radius: 14px; padding: 12px 14px; font-size: 15px; }
+
+.card-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 12px; }
+.seg { display: inline-flex; background: var(--accent-soft); border-radius: 10px; padding: 3px; }
+.seg button { border: 0; background: transparent; color: var(--muted); font: inherit; padding: 0 12px; min-height: 40px; border-radius: 8px; cursor: pointer; }
+.seg button[aria-selected="true"] { background: var(--surface); color: var(--ink); font-weight: 700; box-shadow: var(--shadow); }
+.faces { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; max-width: 640px; margin: 0 auto; }
+figure { margin: 0; text-align: center; }
+figure img { width: 100%; height: auto; border-radius: 10px; display: block; background: #000; }
+figcaption { margin-top: 4px; color: var(--muted); font-size: 14px; font-weight: 700; }
+.overlay { position: relative; max-width: 420px; margin: 0 auto; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: #000; }
+.overlay img { position: absolute; inset: 0; width: 100%; height: 100%; max-width: none; }
+.overlay img.top { z-index: 1; }
+.overlay .handle { position: absolute; z-index: 2; top: 0; bottom: 0; width: 2px; background: #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.4); left: 50%; }
+.overlay .lab { position: absolute; z-index: 2; top: 8px; background: rgba(0,0,0,.6); color: #fff; padding: 0 8px; border-radius: 6px; font-size: 13px; font-weight: 700; }
+.overlay .lab.l { left: 8px; } .overlay .lab.r { right: 8px; }
+input[type="range"] { width: 100%; max-width: 420px; display: block; margin: 12px auto 0; height: 44px; accent-color: var(--accent); }
+.regions { display: grid; gap: 8px; max-width: 640px; margin: 0 auto; }
+.region { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.region figure { position: relative; }
+.region figcaption { position: absolute; left: 6px; bottom: 6px; background: rgba(0,0,0,.6); color: #fff; padding: 0 8px; border-radius: 6px; font-size: 12px; margin: 0; }
+.quality summary { cursor: pointer; font-weight: 700; min-height: 32px; }
+.quality table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 15px; }
+.quality th, .quality td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); }
+.quality th:first-child { width: 50%; }
+.quality td.bad { color: var(--err); font-weight: 700; }
+.report { display: grid; gap: 12px; }
+.report label { display: grid; gap: 4px; font-size: 14px; color: var(--muted); font-weight: 700; }
+.report input, .report textarea { font: inherit; font-size: 16px; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px; width: 100%; }
+.report .btnrow { justify-content: flex-start; }
+.preview { display: grid; gap: 10px; margin-top: 4px; }
+.preview img { width: 100%; max-width: 560px; height: auto; margin: 0 auto; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+
+/* หน้ากระดาษรายงาน: พื้นขาวเสมอ ใช้เรนเดอร์เป็นภาพเท่านั้น (ไม่แสดงบนหน้าจอ) */
+#report-stage { position: absolute; left: -20000px; top: 0; width: 794px; pointer-events: none; }
+.rp { font-family: "Sarabun", "Noto Sans Thai", sans-serif; color: #101828; background: #fff; font-size: 14px; line-height: 1.5; }
+.rp-page { position: relative; overflow: hidden; }
+.rp-block { padding-bottom: 6px; }
+.rp-title { font-size: 32px; font-weight: 700; line-height: 1.3; }
+.rp-sub { color: #667085; margin-bottom: 14px; }
+.rp-kv { width: 100%; border-collapse: collapse; } .rp-kv th, .rp-kv td { text-align: left; vertical-align: top; padding: 4px 3px; border-bottom: 1px solid #d0d5dd; font-size: 13px; }
+.rp-kv th { width: 190px; font-weight: 700; }
+.rp-h { color: #1d4ed8; font-size: 18px; font-weight: 700; margin: 12px 0 6px; }
+.rp-score { display: grid; grid-template-columns: 34% 66%; align-items: center; gap: 0; border: 1px solid #d0d5dd; background: #f9fafb; padding: 10px 12px; }
+.rp-num { font-size: 56px; line-height: 1.05; font-weight: 700; } .rp-band { font-size: 22px; font-weight: 700; }
+.rp-small { font-size: 11.5px; color: #667085; line-height: 1.45; } .rp-hash { word-break: break-all; font-family: monospace; font-size: 10px; }
+.rp-gauge { position: relative; margin: 20px 2px 0; } .rp-zones { display: flex; height: 16px; } .rp-zones i { display: block; }
+.rp-mark { position: absolute; top: -12px; width: 0; height: 0; margin-left: -7px; border-left: 7px solid transparent; border-right: 7px solid transparent; border-top: 11px solid #101828; }
+.rp-ticks { position: relative; height: 18px; font-size: 10.5px; color: #667085; } .rp-ticks span { position: absolute; top: 2px; transform: translateX(-50%); } .rp-ticks span:first-child { transform: none; } .rp-ticks span:last-child { transform: translateX(-100%); }
+.rp-b { font-size: 14px; } .rp-b ul, ul.rp-b { margin: 4px 0 0; padding-left: 22px; }
+.rp-warn { border: 1px solid #f04438; background: #fef3f2; color: #7a271a; padding: 10px 12px; font-size: 13.5px; line-height: 1.55; }
+.rp-two { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; } .rp-two img { display: block; max-width: 100%; margin: 0 auto; }
+.rp-src img { max-height: 330px; width: auto; max-width: 100%; } .rp-cell { font-size: 12.5px; margin-top: 4px; }
+.rp-faces img { width: 250px; height: 250px; } .rp-cap { text-align: center; font-size: 12px; color: #667085; margin-top: 2px; }
+.rp-reg { margin-bottom: 10px; } .rp-reg img { max-height: 120px; width: auto; max-width: 100%; }
+.rp-q { width: 100%; border-collapse: collapse; } .rp-q th, .rp-q td { border: 1px solid #d0d5dd; padding: 3px 8px; font-size: 12.5px; text-align: left; } .rp-q th { background: #eef2ff; }
+.rp-sig { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 36px; text-align: center; font-size: 13px; line-height: 2; } .rp-sig span { color: #667085; }
+.rp-foot { position: absolute; left: 48px; right: 48px; bottom: 26px; display: flex; justify-content: space-between; gap: 12px; font-size: 10.5px; color: #667085; }
+.rp-measure { position: absolute; left: 0; top: 0; visibility: hidden; }
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <h1>เปรียบเทียบใบหน้า</h1>
+    <p class="lede">เลือกภาพบุคคล A และ B ระบบจะตรวจจับ จัดตำแหน่ง และแสดงคะแนนความคล้ายเพื่อใช้ประกอบการพิจารณา</p>
+    <p class="privacy">ประมวลผลในเบราว์เซอร์ของคุณทั้งหมด ภาพไม่ถูกส่งออกจากอุปกรณ์ (ครั้งแรกจะโหลดโมเดล ~16 MB)</p>
+  </header>
+
+  <main>
+    <section class="pair" aria-label="เลือกภาพ">
+      <article class="slot" id="slot-A">
+        <header><span class="tag">A</span><h2>บุคคล A</h2></header>
+        <div class="stage" id="stage-A"><div class="empty"><p>แตะเพื่อเลือกภาพ หรือลากภาพมาวางที่นี่</p><div class="btnrow">
+          <label class="btn primary">เลือกรูป<input type="file" accept="image/*" data-pick="A" hidden></label>
+          <label class="btn">ถ่ายรูป<input type="file" accept="image/*" capture="user" data-pick="A" hidden></label></div></div></div>
+        <p class="status" id="status-A" role="status" aria-live="polite"></p>
+        <div class="chips" id="chips-A"></div>
+        <button class="link" id="reset-A" hidden>เปลี่ยนภาพ</button>
+      </article>
+      <article class="slot" id="slot-B">
+        <header><span class="tag">B</span><h2>บุคคล B</h2></header>
+        <div class="stage" id="stage-B"><div class="empty"><p>แตะเพื่อเลือกภาพ หรือลากภาพมาวางที่นี่</p><div class="btnrow">
+          <label class="btn primary">เลือกรูป<input type="file" accept="image/*" data-pick="B" hidden></label>
+          <label class="btn">ถ่ายรูป<input type="file" accept="image/*" capture="user" data-pick="B" hidden></label></div></div></div>
+        <p class="status" id="status-B" role="status" aria-live="polite"></p>
+        <div class="chips" id="chips-B"></div>
+        <button class="link" id="reset-B" hidden>เปลี่ยนภาพ</button>
+      </article>
+    </section>
+
+    <div class="actions">
+      <button class="btn primary big" id="go" disabled>เปรียบเทียบ</button>
+      <button class="btn" id="swap" disabled>สลับ A ↔ B</button>
+      <button class="btn ghost" id="clear" disabled>ล้างทั้งหมด</button>
+    </div>
+    <p class="error" id="error" role="alert" hidden></p>
+
+    <section id="result" hidden aria-label="ผลการเปรียบเทียบ">
+      <div class="card">
+        <div class="score-head">
+          <div><div class="score" id="score">–</div><div class="score-sub">คะแนนความคล้าย (0–100)</div></div>
+          <div><div class="band" id="band">–</div><p id="band-text"></p><p class="mono" id="cosine"></p></div>
+        </div>
+        <div class="gauge" aria-hidden="true">
+          <div class="zones"><i></i><i></i><i></i><i></i><i></i></div>
+          <div class="marker" id="marker"></div>
+          <div class="ticks"><span style="left:0%">0</span><span style="left:20%">20</span><span style="left:30%">30</span><span style="left:40%">40</span><span style="left:55%">55</span><span style="left:100%">100</span></div>
+        </div>
+        <div class="gauge-legend" aria-hidden="true"><span>ต่ำมาก</span><span>ต่ำ</span><span>ก้ำกึ่ง</span><span>สูง</span><span>สูงมาก</span></div>
+        <div class="reliability" id="reliability"></div>
+      </div>
+
+      <div class="notice" role="note"><strong>โปรดอ่าน:</strong> <span id="disclaimer"></span></div>
+
+      <div class="card">
+        <div class="card-head">
+          <h3>เปรียบเทียบใบหน้าเคียงข้างกัน</h3>
+          <div class="seg" role="tablist" aria-label="โหมดแสดงผล">
+            <button role="tab" aria-selected="true" data-mode="side">เคียงข้าง</button>
+            <button role="tab" aria-selected="false" data-mode="wipe">เลื่อนเทียบ</button>
+            <button role="tab" aria-selected="false" data-mode="blend">ซ้อนโปร่งแสง</button>
+          </div>
+        </div>
+        <div id="view-side" class="faces">
+          <figure><img id="aligned-A" alt="ใบหน้า A ที่จัดตำแหน่งแล้ว"><figcaption>A</figcaption></figure>
+          <figure><img id="aligned-B" alt="ใบหน้า B ที่จัดตำแหน่งแล้ว"><figcaption>B</figcaption></figure>
+        </div>
+        <div id="view-wipe" hidden>
+          <div class="overlay"><img id="wipe-B" alt="ใบหน้า B"><img id="wipe-A" class="top" alt="ใบหน้า A"><div class="handle" id="wipe-handle"></div><span class="lab l">A</span><span class="lab r">B</span></div>
+          <input type="range" id="wipe-range" min="0" max="100" value="50" aria-label="เลื่อนเพื่อเทียบ A และ B">
+          <p class="hint">เลื่อนแถบเพื่อดูใบหน้า A และ B ทับกัน (ซ้าย = A, ขวา = B)</p>
+        </div>
+        <div id="view-blend" hidden>
+          <div class="overlay"><img id="blend-B" alt="ใบหน้า B"><img id="blend-A" class="top" alt="ใบหน้า A" style="opacity:.5"></div>
+          <input type="range" id="blend-range" min="0" max="100" value="50" aria-label="ความโปร่งแสงของภาพ A">
+          <p class="hint">ปรับสัดส่วนภาพ A ซ้อนทับภาพ B เพื่อดูความต่างของโครงหน้า</p>
+        </div>
+        <h4>เปรียบเทียบเฉพาะส่วน</h4>
+        <div class="regions" id="regions"></div>
+      </div>
+
+      <details class="card quality">
+        <summary>รายละเอียดคุณภาพภาพ</summary>
+        <table><thead><tr><th></th><th>A</th><th>B</th></tr></thead><tbody id="quality-body"></tbody></table>
+        <p class="hint" id="model-name"></p>
+      </details>
+
+      <form class="card report" id="report-form">
+        <h3>ออกรายงาน PDF</h3>
+        <p class="hint">รายงานมีภาพต้นฉบับพร้อมกรอบใบหน้า ใบหน้าที่จัดตำแหน่งแล้ว คะแนน คุณภาพภาพ ค่า SHA-256 ของไฟล์ วิธีการ และข้อควรระวัง ช่องด้านล่างไม่บังคับกรอก</p>
+        <label for="f-case">เลขที่เรื่อง / อ้างอิง<input id="f-case" name="case_no" maxlength="200" autocomplete="off"></label>
+        <label for="f-purpose">วัตถุประสงค์<input id="f-purpose" name="purpose" maxlength="500" autocomplete="off"></label>
+        <label for="f-examiner">ผู้จัดทำ / ผู้ตรวจ<input id="f-examiner" name="examiner" maxlength="200" autocomplete="name"></label>
+        <label for="f-notes">หมายเหตุ<textarea id="f-notes" name="notes" rows="3" maxlength="1500"></textarea></label>
+        <div class="btnrow"><button class="btn primary big" type="submit" id="report-btn">สร้างรายงาน PDF</button></div>
+        <p class="status" id="report-status" role="status" aria-live="polite"></p>
+        <div id="report-preview" hidden>
+          <h4>ตัวอย่างหน้ารายงาน</h4>
+          <div class="preview" id="report-pages"></div>
+        </div>
+      </form>
+    </section>
+  </main>
+  <footer class="foot"><p>เครื่องมือช่วยตรวจสอบเบื้องต้นเท่านั้น ไม่ใช่การพิสูจน์ตัวบุคคล</p></footer>
+</div>
+<div id="report-stage" aria-hidden="true"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script>
+/*__ORT__*/
+</script>
+<script>
+/*__APP__*/
+</script>
