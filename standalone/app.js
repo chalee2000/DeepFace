@@ -9,7 +9,6 @@
     // โมเดลเก็บเป็น base64 ในไฟล์ .txt (บริการโฮสต์ไม่รับ .onnx) แบ่งเป็นส่วน ๆ ละ < 16 MB
     detModel: ["models/det_500m.b64.0.txt"],
     recModel: ["models/w600k_mbf.b64.0.txt", "models/w600k_mbf.b64.1.txt"],
-    wasmPath: "ort/",
     modelName: "InsightFace buffalo_s (SCRFD det_500m + ArcFace MobileFaceNet w600k_mbf)",
     maxSide: 2400,
     previewSide: 1600,
@@ -74,6 +73,41 @@
     }
   }
 
+  // ============================================================ โหลดไฟล์ประกอบของหน้า (โมเดล/wasm)
+  // ที่อยู่ไฟล์ที่เผยแพร่คู่กับหน้า อาจต้องอ้างอิงต่างกันตามที่หน้าถูกเสิร์ฟ จึงลองหลายรูปแบบและจำแบบที่ใช้ได้
+  const Assets = {
+    mode: null,
+    log: [],
+    candidates(path) {
+      const loc = window.location;
+      const clean = loc.origin + loc.pathname;
+      const last = clean.split("/").pop();
+      const dir = clean.endsWith("/") ? clean : /\.[a-z0-9]+$/i.test(last) ? clean.slice(0, clean.lastIndexOf("/") + 1) : clean + "/";
+      return [path, dir + path, dir + path + loc.search, loc.origin + "/" + path];
+    },
+    urlFor(path) { return this.candidates(path)[this.mode == null ? 0 : this.mode]; },
+    async fetchText(path) {
+      const order = this.mode != null ? [this.mode] : [0, 1, 2, 3];
+      for (const m of order) {
+        const url = this.candidates(path)[m];
+        try {
+          const r = await fetch(url);
+          this.log.push(`${r.status} ${url}`);
+          if (r.ok) { this.mode = m; return await r.text(); }
+        } catch (e) { this.log.push(`ERR ${url} (${e && e.message})`); }
+      }
+      // ลองไฟล์เล็ก (index.html) เพื่อดูว่าปัญหาอยู่ที่ที่อยู่หรือที่ตัวไฟล์
+      this.log.push("— ทดสอบ index.html —");
+      for (const url of this.candidates("index.html")) {
+        try { const r = await fetch(url, { method: "GET" }); this.log.push(`${r.status} ${url}`); } catch (e) { this.log.push(`ERR ${url}`); }
+      }
+      this.log.push(`page: ${window.location.href.slice(0, 160)} | base: ${document.baseURI.slice(0, 160)}`);
+      const err = new Error(`โหลดโมเดลไม่สำเร็จ (${path})`);
+      err.detail = this.log.join("\n");
+      throw err;
+    },
+  };
+
   // ============================================================ โมเดล
   const Engine = {
     det: null, rec: null, loading: null, chain: Promise.resolve(),
@@ -83,15 +117,10 @@
           if (typeof ort === "undefined") throw new Error("โหลดไลบรารี ONNX Runtime ไม่สำเร็จ");
           ort.env.wasm.numThreads = 1;
           ort.env.wasm.proxy = false;
-          ort.env.wasm.wasmPaths = CFG.wasmPath;
           const get = async (parts) => {
             const chunks = [];
             let total = 0;
-            for (const p of await Promise.all(parts.map(async (p) => {
-              const r = await fetch(p);
-              if (!r.ok) throw new Error(`โหลดโมเดลไม่สำเร็จ (${p}: ${r.status})`);
-              return (await r.text()).trim();
-            }))) {
+            for (const p of await Promise.all(parts.map(async (p) => (await Assets.fetchText(p)).trim()))) {
               const bin = atob(p);
               const u8 = new Uint8Array(bin.length);
               for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
@@ -102,10 +131,18 @@
             for (const c of chunks) { out.set(c, off); off += c.length; }
             return out;
           };
-          const [d, r] = await Promise.all([get(CFG.detModel), get(CFG.recModel)]);
+          const d = await get(CFG.detModel);   // ไฟล์แรกใช้หาวิธีอ้างอิงที่อยู่ที่ใช้ได้ ก่อนโหลดไฟล์ใหญ่
+          const r = await get(CFG.recModel);
+          ort.env.wasm.wasmPaths = { "ort-wasm-simd.wasm": Assets.urlFor("ort/ort-wasm-simd.wasm"), "ort-wasm.wasm": Assets.urlFor("ort/ort-wasm.wasm") };
           const opts = { executionProviders: ["wasm"], graphOptimizationLevel: "all" };
-          this.det = await ort.InferenceSession.create(d, opts);
-          this.rec = await ort.InferenceSession.create(r, opts);
+          try {
+            this.det = await ort.InferenceSession.create(d, opts);
+            this.rec = await ort.InferenceSession.create(r, opts);
+          } catch (e) {
+            const err = new Error("เริ่มตัวรันโมเดลไม่สำเร็จ (WebAssembly)");
+            err.detail = `${e && e.message}\n${Assets.log.join("\n")}\nwasm: ${JSON.stringify(ort.env.wasm.wasmPaths)}`;
+            throw err;
+          }
         })().catch((e) => { this.loading = null; throw e; });
       }
       return this.loading;
@@ -350,7 +387,14 @@
   }
 
   // ============================================================ UI: การอัปโหลด
-  function showError(msg) { const el = $("#error"); el.textContent = msg || ""; el.hidden = !msg; }
+  function showError(msg, detail) {
+    const el = $("#error");
+    el.textContent = msg || "";
+    el.hidden = !msg;
+    const d = $("#diag");
+    d.textContent = detail || "";
+    d.hidden = !detail;
+  }
   function setStatus(slot, msg, bad = false) { const el = $(`#status-${slot}`); el.textContent = msg || ""; el.classList.toggle("bad", !!bad); }
   function refreshButtons() {
     const ready = SLOTS.every((s) => state[s] && state[s].entry.faces.length > 0);
@@ -402,6 +446,7 @@
       stage.innerHTML = emptyHtml(slot);
       bindPickers(stage);
       setStatus(slot, e.message || "เกิดข้อผิดพลาด", true);
+      if (e.detail) showError("รายละเอียดทางเทคนิค (ส่งภาพหน้านี้ให้ผู้พัฒนาได้):", e.detail);
     } finally {
       state.busy = false;
       refreshButtons();

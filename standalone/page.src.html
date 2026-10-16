@@ -88,6 +88,7 @@ p { margin: 0; }
 .actions { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 8px; align-items: center; }
 .error { color: var(--err); background: color-mix(in srgb, var(--err) 10%, transparent); padding: 10px 14px; border-radius: 10px; margin: 8px 0; }
 
+.diag { margin: 0 0 8px; padding: 10px 12px; border-radius: 10px; background: var(--surface); border: 1px solid var(--line); font-size: 12px; line-height: 1.4; white-space: pre-wrap; word-break: break-all; color: var(--muted); }
 #result { margin-top: 16px; display: grid; gap: 16px; }
 .score-head { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; }
 .score { font-size: 64px; line-height: 1; font-weight: 700; font-variant-numeric: tabular-nums; }
@@ -206,6 +207,7 @@ input[type="range"] { width: 100%; max-width: 420px; display: block; margin: 12p
       <button class="btn ghost" id="clear" disabled>ล้างทั้งหมด</button>
     </div>
     <p class="error" id="error" role="alert" hidden></p>
+    <pre class="diag" id="diag" hidden></pre>
 
     <section id="result" hidden aria-label="ผลการเปรียบเทียบ">
       <div class="card">
