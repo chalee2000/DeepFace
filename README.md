@@ -24,7 +24,13 @@ python -m http.server 8010 -d standalone/dist
 # เปิด http://localhost:8010/index.html
 ```
 
-คะแนนจากเวอร์ชันนี้ต่างจากเวอร์ชันเซิร์ฟเวอร์เล็กน้อย เพราะใช้โมเดลขนาดเล็กกว่า (MobileFaceNet แทน ResNet50)
+เวอร์ชันนี้ใช้โมเดล ArcFace ResNet50 แบบบีบอัด int8 (~44 MB) + ภาพกลับด้าน + จุดโครงหน้า 106 จุด + ตารางสัดส่วนใบหน้า
+คะแนนจึงใกล้เคียงเวอร์ชันเซิร์ฟเวอร์ (ต่างไม่เกินประมาณ 1–2 คะแนนในการทดสอบ)
+
+### Deploy บน Render (Docker)
+`Dockerfile` ที่รากโปรเจกต์ประกอบเวอร์ชันนี้แล้วเสิร์ฟด้วย nginx — ไม่ต้องใช้ RAM ฝั่งเซิร์ฟเวอร์ ใช้แพ็กเกจ Free ได้
+ตั้งค่า: New → Web Service → เลือก repo/branch → Language = Docker (ไม่ต้องตั้ง Port; nginx ใช้ตัวแปร `PORT` ของ Render)
+Build ครั้งแรกดาวน์โหลดโมเดลราว 300 MB ใช้เวลาหลายนาที เวอร์ชันเซิร์ฟเวอร์ Python เดิมอยู่ที่ `Dockerfile.server`
 
 ## วิธีรัน (เวอร์ชันเซิร์ฟเวอร์)
 
@@ -40,7 +46,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000
 **ใช้บน iPhone:** ให้ iPhone และคอมพิวเตอร์อยู่ Wi-Fi เดียวกัน แล้วเปิด `http://<IP ของคอมพิวเตอร์>:8000` ใน Safari
 (ปุ่ม "ถ่ายรูป" เปิดกล้องได้โดยตรง; ไม่ต้องใช้ HTTPS) หากจะเปิดให้เข้าจากอินเทอร์เน็ต ควรวางหลัง HTTPS reverse proxy และใส่การยืนยันตัวตน เพราะระบบนี้ไม่มีระบบผู้ใช้
 
-หรือใช้ Docker: `docker build -t face-compare . && docker run -p 8000:8000 face-compare`
+หรือใช้ Docker: `docker build -f Dockerfile.server -t face-compare . && docker run -p 8000:8000 face-compare`
 
 ## ความเป็นส่วนตัว
 
